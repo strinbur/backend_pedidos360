@@ -1,6 +1,7 @@
 package com.pedidos360.product.controller;
 
-import com.pedidos360.product.model.Product;
+import com.pedidos360.product.dto.ProductRequestDTO;
+import com.pedidos360.product.dto.ProductResponseDTO;
 import com.pedidos360.product.service.ProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,22 +20,22 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> create(@RequestBody Product product) {
+    public ResponseEntity<ProductResponseDTO> create(@RequestBody ProductRequestDTO product) {
         return ResponseEntity.ok(productService.create(product));
     }
 
     @GetMapping
-    public ResponseEntity<List<Product>> findAll() {
+    public ResponseEntity<List<ProductResponseDTO>> findAll() {
         return ResponseEntity.ok(productService.findAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> findById(@PathVariable String id) {
+    public ResponseEntity<ProductResponseDTO> findById(@PathVariable String id) {
         return ResponseEntity.ok(productService.findById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> update(@PathVariable String id, @RequestBody Product product) {
+    public ResponseEntity<ProductResponseDTO> update(@PathVariable String id, @RequestBody ProductRequestDTO product) {
         return ResponseEntity.ok(productService.update(id, product));
     }
 
@@ -45,7 +46,7 @@ public class ProductController {
     }
 
     @GetMapping("/code/{code}")
-    public ResponseEntity<Product> findByCode(@PathVariable String code) {
+    public ResponseEntity<ProductResponseDTO> findByCode(@PathVariable String code) {
         return ResponseEntity.ok(productService.findByCode(code));
-    }    
+    }
 }

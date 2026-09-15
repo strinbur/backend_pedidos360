@@ -1,20 +1,21 @@
 package com.pedidos360.product.service;
 
-import com.pedidos360.product.model.Product;
+import com.pedidos360.product.dto.ProductRequestDTO;
+import com.pedidos360.product.dto.ProductResponseDTO;
 
 import java.util.List;
 
 public interface ProductService {
 
-    Product create(Product product);
+    ProductResponseDTO create(ProductRequestDTO dto);
 
-    List<Product> findAll();
+    List<ProductResponseDTO> findAll();
 
-    Product findById(String id);
+    ProductResponseDTO findById(String id);
 
-    Product update(String id, Product product);
+    ProductResponseDTO update(String id, ProductRequestDTO dto);
 
     void delete(String id);
 
-    Product findByCode(String code);
+    ProductResponseDTO findByCode(String code);
 }

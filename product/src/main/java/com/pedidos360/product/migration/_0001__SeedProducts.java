@@ -8,10 +8,14 @@ import io.flamingock.api.annotations.TargetSystem;
 import org.bson.Document;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @TargetSystem(id = "product-mongo")
 @Change(id = "seed-initial-products", author = "pato")
 public class _0001__SeedProducts {
+
+    private static final String IMAGE_BASE_PATH = "/images/products";
+    private final AtomicInteger imageIndex = new AtomicInteger(1);
 
     @Apply
     public void execution(MongoDatabase database) {
@@ -53,12 +57,14 @@ public class _0001__SeedProducts {
     }
 
     private Document product(String code, String name, String description, double price, int stock, String category) {
+        String imageUrl = IMAGE_BASE_PATH + "/prod" + imageIndex.getAndIncrement() + ".jpg";
         return new Document()
             .append("code", code)
             .append("name", name)
             .append("description", description)
             .append("price", price)
             .append("stock", stock)
-            .append("category", category);
+            .append("category", category)
+            .append("imageUrl", imageUrl);
     }
 }

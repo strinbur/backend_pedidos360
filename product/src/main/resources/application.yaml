@@ -16,4 +16,4 @@ app:
   security:
     audience: 8d14a1ab-3758-45e4-b409-a95f6b7442e3
   cors:
-    allowed-origins: http://localhost:4200
+    allowed-origins: http://localhost:4200, https://52.22.2.226  

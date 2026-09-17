@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/products")
 public class ProductController {
@@ -20,7 +19,9 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductResponseDTO> create(@RequestBody ProductRequestDTO product) {
+    public ResponseEntity<ProductResponseDTO> create(
+            @RequestBody ProductRequestDTO product) {
+
         return ResponseEntity.ok(productService.create(product));
     }
 
@@ -30,23 +31,37 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> findById(@PathVariable String id) {
+    public ResponseEntity<ProductResponseDTO> findById(
+            @PathVariable String id) {
+
         return ResponseEntity.ok(productService.findById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> update(@PathVariable String id, @RequestBody ProductRequestDTO product) {
-        return ResponseEntity.ok(productService.update(id, product));
+    public ResponseEntity<ProductResponseDTO> update(
+            @PathVariable String id,
+            @RequestBody ProductRequestDTO product) {
+
+        return ResponseEntity.ok(
+            productService.update(id, product)
+        );
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable String id) {
+
         productService.delete(id);
+
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/code/{code}")
-    public ResponseEntity<ProductResponseDTO> findByCode(@PathVariable String code) {
-        return ResponseEntity.ok(productService.findByCode(code));
+    public ResponseEntity<ProductResponseDTO> findByCode(
+            @PathVariable String code) {
+
+        return ResponseEntity.ok(
+            productService.findByCode(code)
+        );
     }
 }

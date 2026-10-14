@@ -5,6 +5,8 @@ import com.pedidos360.product.dto.ProductResponseDTO;
 import com.pedidos360.product.exception.DuplicateProductCodeException;
 import com.pedidos360.product.exception.ProductNotFoundException;
 import com.pedidos360.product.mapper.ProductMapper;
+import com.pedidos360.product.messaging.producer.PublishProductDeleted;
+import com.pedidos360.product.messaging.producer.PublishProductUpdated;
 import com.pedidos360.product.model.Product;
 import com.pedidos360.product.repository.ProductRepository;
 import com.pedidos360.product.service.ProductService;
@@ -16,9 +18,15 @@ import java.util.List;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final PublishProductUpdated publishProductUpdated;
+    private final PublishProductDeleted publishProductDeleted;
 
-    public ProductServiceImpl(ProductRepository productRepository) {
+    public ProductServiceImpl(ProductRepository productRepository,
+                              PublishProductUpdated publishProductUpdated,
+                              PublishProductDeleted publishProductDeleted) {
         this.productRepository = productRepository;
+        this.publishProductUpdated = publishProductUpdated;
+        this.publishProductDeleted = publishProductDeleted;
     }
 
     @Override
@@ -63,6 +71,7 @@ public class ProductServiceImpl implements ProductService {
         existing.setImageUrl(dto.imageUrl());
 
         Product updated = productRepository.save(existing);
+        publishProductUpdated.execute(updated);              // NUEVO
         return ProductMapper.toResponseDTO(updated);
     }
 
@@ -72,6 +81,7 @@ public class ProductServiceImpl implements ProductService {
             throw new ProductNotFoundException("Producto no encontrado con id: " + id);
         }
         productRepository.deleteById(id);
+        publishProductDeleted.execute(id);                   // NUEVO
     }
 
     @Override

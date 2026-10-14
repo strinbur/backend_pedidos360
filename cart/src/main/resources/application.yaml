@@ -3,8 +3,38 @@ server:
 
 product:
   service:
-    url: http://localhost:8081
+    url: ${PRODUCT_SERVICE_URL:http://localhost:8081}
 
 spring:
   application:
     name: cart
+  rabbitmq:
+    addresses: ${RABBIT_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBIT_USER:admin}
+    password: ${RABBIT_PASSWORD:admin}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        default-requeue-rejected: false
+        prefetch: 10
+
+app:
+  cors:
+    # despes agregar la ip elastica SIN BORRAR EL LOCALHOST DEBE QUEDAR ALGO ASI
+    # allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://IP_ELASTICA:4200}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  rabbit:
+    exchanges:
+      direct: shop.direct
+      topic: shop.topic
+      dlx: shop.dlx
+    queues:
+      stock: product.stock.queue
+      stock-dlq: product.stock.dlq
+      product-events: cart.product-events.queue
+      product-events-dlq: cart.product-events.dlq
+    routing-keys:
+      stock-reduce: stock.reduce
+      product-updated: product.updated
+      product-deleted: product.deleted
+      product-events-binding: product.*

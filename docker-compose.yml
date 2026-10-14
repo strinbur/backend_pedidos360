@@ -1,0 +1,102 @@
+services:
+  rabbitmq1:
+    image: rabbitmq:4-management
+    container_name: rabbitmq1
+    hostname: rabbitmq1
+    ports:
+      - "5672:5672"      # AMQP (lo que usarán cart y product)
+      - "15672:15672"    # panel web del nodo 1
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_ERLANG_COOKIE: "cookie-secreta-123"
+    volumes:
+      - ./infra/rabbitmq/cluster.conf:/etc/rabbitmq/conf.d/20-cluster.conf:ro
+      - rabbitmq1_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    networks:
+      - app-net
+
+  rabbitmq2:
+    image: rabbitmq:4-management
+    container_name: rabbitmq2
+    hostname: rabbitmq2
+    ports:
+      - "5673:5672"      # AMQP del nodo 2
+      - "15673:15672"    # panel web del nodo 2
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_ERLANG_COOKIE: "cookie-secreta-123"
+    volumes:
+      - ./infra/rabbitmq/cluster.conf:/etc/rabbitmq/conf.d/20-cluster.conf:ro
+      - rabbitmq2_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    networks:
+      - app-net
+
+  product:
+    build: ./product
+    container_name: product
+    ports:
+      - "8081:8081"
+    environment:
+      RABBIT_ADDRESSES: rabbitmq1:5672,rabbitmq2:5672
+      MONGODB_URI: mongodb://host.docker.internal:27017/product_db
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
+      rabbitmq2:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  cart:
+    build: ./cart
+    container_name: cart
+    ports:
+      - "8082:8082"
+    environment:
+      RABBIT_ADDRESSES: rabbitmq1:5672,rabbitmq2:5672
+      PRODUCT_SERVICE_URL: http://product:8081
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
+      rabbitmq2:
+        condition: service_healthy
+      product:
+        condition: service_started
+    networks:
+      - app-net
+
+  rabbitadmin:
+    build: ./rabbitadmin
+    container_name: rabbitadmin
+    ports:
+      - "8083:8083"
+    environment:
+      RABBIT_ADDRESSES: rabbitmq1:5672,rabbitmq2:5672
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
+      rabbitmq2:
+        condition: service_healthy
+    networks:
+      - app-net
+
+volumes:
+  rabbitmq1_data:
+  rabbitmq2_data:
+
+networks:
+  app-net:

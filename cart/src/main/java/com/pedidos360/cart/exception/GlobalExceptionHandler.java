@@ -21,6 +21,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    @ExceptionHandler(org.springframework.web.client.ResourceAccessException.class)
+    public ResponseEntity<Object> handleProductDown(org.springframework.web.client.ResourceAccessException ex) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "El servicio de productos no está disponible");
+    }
+
+    @ExceptionHandler(org.springframework.amqp.AmqpException.class)
+    public ResponseEntity<Object> handleBrokerDown(org.springframework.amqp.AmqpException ex) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "No se pudo enviar el pedido, intenta nuevamente");
+    }
+
     private ResponseEntity<Object> build(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(Map.of(
                 "timestamp", Instant.now().toString(),

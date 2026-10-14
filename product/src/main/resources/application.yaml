@@ -25,10 +25,10 @@ app:
   security:
     audience: 8d14a1ab-3758-45e4-b409-a95f6b7442e3
   cors:
-    # Para AWS: reemplazar la linea activa de abajo por esta, cambiando IP_ELASTICA por la IP real.
-    # NO borrar http://localhost:4200. Sin espacios entre origenes y sin "/" al final.
-    # allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://IP_ELASTICA:4200}
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+    # Origenes permitidos del frontend, separados por coma, SIN espacios y SIN "/" al final.
+    # Para agregar otro origen: sumarlo dentro de las llaves, despues del ultimo.
+    # NO borrar http://localhost:4200 (es el que usa el front en local).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,https://52.22.2.226}
   rabbit:
     exchanges:
       direct: shop.direct

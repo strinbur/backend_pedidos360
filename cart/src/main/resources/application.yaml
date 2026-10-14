@@ -20,9 +20,10 @@ spring:
 
 app:
   cors:
-    # despes agregar la ip elastica SIN BORRAR EL LOCALHOST DEBE QUEDAR ALGO ASI
-    # allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://IP_ELASTICA:4200}
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+    # Origenes permitidos del frontend, separados por coma, SIN espacios y SIN "/" al final.
+    # Para agregar otro origen: sumarlo dentro de las llaves, despues del ultimo.
+    # NO borrar http://localhost:4200 (es el que usa el front en local).
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,https://52.22.2.226}
   rabbit:
     exchanges:
       direct: shop.direct

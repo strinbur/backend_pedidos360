@@ -5,15 +5,42 @@ spring:
   application:
     name: product
   mongodb:
-    uri: mongodb://localhost:27017/product_db
+    uri: ${MONGODB_URI:mongodb://localhost:27017/product_db}
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: https://login.microsoftonline.com/f2a31af8-f420-417d-b585-34f31769c272/v2.0
+  rabbitmq:
+    addresses: ${RABBIT_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBIT_USER:admin}
+    password: ${RABBIT_PASSWORD:admin}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        default-requeue-rejected: false
+        prefetch: 10
 
 app:
   security:
     audience: 8d14a1ab-3758-45e4-b409-a95f6b7442e3
   cors:
-    allowed-origins: http://localhost:4200
+    # Para AWS: reemplazar la linea activa de abajo por esta, cambiando IP_ELASTICA por la IP real.
+    # NO borrar http://localhost:4200. Sin espacios entre origenes y sin "/" al final.
+    # allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://IP_ELASTICA:4200}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  rabbit:
+    exchanges:
+      direct: shop.direct
+      topic: shop.topic
+      dlx: shop.dlx
+    queues:
+      stock: product.stock.queue
+      stock-dlq: product.stock.dlq
+      product-events: cart.product-events.queue
+      product-events-dlq: cart.product-events.dlq
+    routing-keys:
+      stock-reduce: stock.reduce
+      product-updated: product.updated
+      product-deleted: product.deleted
+      product-events-binding: product.*

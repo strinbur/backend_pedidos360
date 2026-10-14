@@ -1,0 +1,14 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: rabbitadmin
+  rabbitmq:
+    addresses: ${RABBIT_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBIT_USER:admin}
+    password: ${RABBIT_PASSWORD:admin}
+
+app:
+  admin:
+    protected-exchange-prefix: amq.

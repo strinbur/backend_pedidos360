@@ -3,7 +3,11 @@ package com.pedidos360.product.usecase;
 import com.mongodb.client.result.UpdateResult;
 import com.pedidos360.product.exception.InsufficientStockException;
 import com.pedidos360.product.exception.ProductNotFoundException;
+import com.pedidos360.product.messaging.producer.PublishStockLow;
 import com.pedidos360.product.model.Product;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -16,12 +20,19 @@ import java.util.List;
 @Service
 public class ReduceStock {
 
+    private static final Logger log = LoggerFactory.getLogger(ReduceStock.class);
+
     public record StockReduction(String productId, int quantity) {}
 
     private final MongoTemplate mongoTemplate;
+    private final PublishStockLow publishStockLow;
+    private final int lowStockThreshold;
 
-    public ReduceStock(MongoTemplate mongoTemplate) {
+    public ReduceStock(MongoTemplate mongoTemplate, PublishStockLow publishStockLow,
+                       @Value("${app.kafka.low-stock-threshold}") int lowStockThreshold) {
         this.mongoTemplate = mongoTemplate;
+        this.publishStockLow = publishStockLow;
+        this.lowStockThreshold = lowStockThreshold;
     }
 
     public void execute(List<StockReduction> reductions) {
@@ -35,6 +46,7 @@ public class ReduceStock {
             rollback(applied);   // si un ítem falla, devuelve el stock de los anteriores
             throw e;
         }
+        notifyLowStock(reductions);
     }
 
     private void reduceOne(StockReduction r) {
@@ -60,6 +72,20 @@ public class ReduceStock {
                     new Query(Criteria.where("id").is(r.productId())),
                     new Update().inc("stock", r.quantity()),
                     Product.class);
+        }
+    }
+
+    // El stock ya se descontó: un fallo aquí NO debe hacer fallar (ni mandar a la DLQ) el checkout
+    private void notifyLowStock(List<StockReduction> reductions) {
+        for (StockReduction r : reductions) {
+            try {
+                Product product = mongoTemplate.findById(r.productId(), Product.class);
+                if (product != null && product.getStock() < lowStockThreshold) {
+                    publishStockLow.execute(product, lowStockThreshold);
+                }
+            } catch (RuntimeException e) {
+                log.error("No se pudo evaluar stock bajo de productId={}", r.productId(), e);
+            }
         }
     }
 }

@@ -17,6 +17,16 @@ spring:
         acknowledge-mode: manual
         default-requeue-rejected: false
         prefetch: 10
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092,localhost:9094,localhost:9095}
+    consumer:
+      group-id: cart-stock-low
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    producer:
+      acks: all
+    listener:
+      ack-mode: manual
 
 app:
   cors:
@@ -39,3 +49,7 @@ app:
       product-updated: product.updated
       product-deleted: product.deleted
       product-events-binding: product.*
+  kafka:
+    topics:
+      stock-low: stock.low
+      orders-checkout: orders.checkout

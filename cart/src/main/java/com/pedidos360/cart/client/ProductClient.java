@@ -1,6 +1,7 @@
 package com.pedidos360.cart.client;
 
 import com.pedidos360.cart.cache.CachedProduct;
+import com.pedidos360.cart.cache.LowStockRegistry;
 import com.pedidos360.cart.cache.ProductCache;
 import com.pedidos360.cart.dto.ProductDTO;
 import com.pedidos360.cart.exception.ProductNotFoundException;
@@ -18,10 +19,12 @@ public class ProductClient {
 
     private final RestClient productRestClient;
     private final ProductCache cache;
+    private final LowStockRegistry lowStock;
 
-    public ProductClient(RestClient productRestClient, ProductCache cache) {
+    public ProductClient(RestClient productRestClient, ProductCache cache, LowStockRegistry lowStock) {
         this.productRestClient = productRestClient;
         this.cache = cache;
+        this.lowStock = lowStock;
     }
 
     public ProductDTO getProductById(String productId) {
@@ -33,17 +36,20 @@ public class ProductClient {
             if (product != null) {
                 cache.put(new CachedProduct(product.id(), product.code(), product.name(),
                         product.price(), product.imageUrl()));
+                lowStock.remove(productId);   // el dato REST es el más fresco
             }
             return product;
         } catch (HttpClientErrorException.NotFound ex) {
             cache.remove(productId);
+            lowStock.remove(productId);
             throw new ProductNotFoundException(productId);
         } catch (ResourceAccessException ex) {
             // product no responde: usa el último dato conocido
             log.warn("Product no disponible, usando caché para productId={}", productId);
             return cache.find(productId)
                     .map(c -> new ProductDTO(c.id(), c.code(), c.name(), null, c.price(),
-                            Integer.MAX_VALUE,   // stock desconocido: lo valida product al consumir
+                            // último stock bajo informado por Kafka; si no hay, se valida al consumir
+                            lowStock.find(c.id()).orElse(Integer.MAX_VALUE),
                             null, c.imageUrl()))
                     .orElseThrow(() -> ex);
         }

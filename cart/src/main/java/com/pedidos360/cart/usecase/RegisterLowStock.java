@@ -17,8 +17,15 @@ public class RegisterLowStock {
     }
 
     public void execute(StockLowMessage message) {
+        if ("OK".equals(message.level())) {
+            registry.remove(message.productId());
+            log.info("Stock recuperado productId={} nombre={} stock={}",
+                    message.productId(), message.name(), message.stock());
+            return;
+        }
         registry.put(message.productId(), message.stock());
-        log.warn("Stock bajo productId={} nombre={} stock={} (umbral={})",
-                message.productId(), message.name(), message.stock(), message.threshold());
+        log.warn("Stock {} productId={} nombre={} stock={} (umbral={})",
+                message.level(), message.productId(), message.name(),
+                message.stock(), message.threshold());
     }
 }

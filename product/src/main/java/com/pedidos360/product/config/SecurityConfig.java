@@ -43,6 +43,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight de CORS
                 .requestMatchers("/images/**").permitAll() // Imágenes de productos públicas
+                .requestMatchers(HttpMethod.GET, "/products/stats/**").hasRole("ADMIN") // Estadísticas: solo admin
                 .requestMatchers(HttpMethod.GET, "/products/**").permitAll() // GET de productos es público
                 .requestMatchers("/products/**").hasRole("ADMIN") // POST/PUT/DELETE requieren ADMIN
                 .anyRequest().authenticated())

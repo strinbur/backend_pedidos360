@@ -19,19 +19,31 @@ public class PublishStockLow {
     private final JsonMapper jsonMapper;
     private final MessageValidator validator;
     private final String topic;
+    private final int threshold;
 
     public PublishStockLow(KafkaTemplate<String, String> kafkaTemplate, JsonMapper jsonMapper,
                            MessageValidator validator,
-                           @Value("${app.kafka.topics.stock-low}") String topic) {
+                           @Value("${app.kafka.topics.stock-low}") String topic,
+                           @Value("${app.kafka.low-stock-threshold}") int threshold) {
         this.kafkaTemplate = kafkaTemplate;
         this.jsonMapper = jsonMapper;
         this.validator = validator;
         this.topic = topic;
+        this.threshold = threshold;
     }
 
-    public void execute(Product product, int threshold) {
+    /** Publica si el stock está bajo el umbral, o si acaba de recuperarse por sobre él. */
+    public void executeIfRelevant(Product product, int previousStock) {
+        boolean below = product.getStock() < threshold;
+        boolean recovered = !below && previousStock < threshold;
+        if (!below && !recovered) {
+            return;
+        }
+        String level = product.getStock() == 0 ? "OUT" : below ? "LOW" : "OK";
+
         StockLowMessage message = new StockLowMessage(
-                product.getId(), product.getCode(), product.getName(), product.getStock(), threshold);
+                product.getId(), product.getCode(), product.getName(),
+                product.getStock(), threshold, level);
         try {
             validator.validate(message);
             String json = jsonMapper.writeValueAsString(message);
@@ -40,8 +52,9 @@ public class PublishStockLow {
                 if (ex != null) {
                     log.error("No se pudo publicar stock.low productId={}", message.productId(), ex);
                 } else {
-                    log.info("stock.low publicado productId={} stock={} partición={}",
-                            message.productId(), message.stock(), result.getRecordMetadata().partition());
+                    log.info("stock.low publicado productId={} stock={} level={} partición={}",
+                            message.productId(), message.stock(), message.level(),
+                            result.getRecordMetadata().partition());
                 }
             });
         } catch (RuntimeException e) {

@@ -15,4 +15,5 @@ public class SaleRecord {
     private int quantity;
     private double subtotal;
     private String occurredAt;
+    private String status;      // PENDIENTE | CONFIRMADA | RECHAZADA
 }

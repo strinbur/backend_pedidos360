@@ -28,6 +28,14 @@ spring:
       enable-auto-commit: false
     producer:
       acks: all
+      properties:
+        max.block.ms: 3000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 10000
+    streams:
+      application-id: product-sales-streams-v2
+      properties:
+        processing.guarantee: exactly_once_v2
     listener:
       ack-mode: manual
 
@@ -56,6 +64,11 @@ app:
       product-events-binding: product.*
   kafka:
     low-stock-threshold: 5
+    velocity-window-minutes: 5
     topics:
       stock-low: stock.low
       orders-checkout: orders.checkout
+      orders-result: orders.result
+      sales-totals: sales.totals
+      sales-velocity: sales.velocity
+      stock-alerts: stock.alerts

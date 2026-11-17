@@ -2,6 +2,7 @@ package com.pedidos360.cart.usecase;
 
 import com.pedidos360.cart.dto.CartRequestDTO;
 import com.pedidos360.cart.dto.CartResponseDTO;
+import com.pedidos360.cart.dto.CheckoutResponseDTO;
 import com.pedidos360.cart.messaging.dto.CheckoutItemMessage;
 import com.pedidos360.cart.messaging.dto.CheckoutMessage;
 import com.pedidos360.cart.messaging.dto.OrderPlacedItem;
@@ -29,24 +30,17 @@ public class CheckoutCart {
         this.publishOrderPlaced = publishOrderPlaced;
     }
 
-    public CartResponseDTO execute(CartRequestDTO request) {
-        // 1. Valida productos y stock por REST
+    public CheckoutResponseDTO execute(CartRequestDTO request) {
         CartResponseDTO calculated = cartService.calculate(request);
 
-        // 2. Arma el mensaje de RabbitMQ
         String cartId = UUID.randomUUID().toString();
         List<CheckoutItemMessage> items = request.items().stream()
                 .map(i -> new CheckoutItemMessage(i.productId(), i.quantity()))
                 .toList();
-        CheckoutMessage message = new CheckoutMessage(cartId, null, items);
-
-        // 3. Publica en RabbitMQ; product descontará el stock de forma asíncrona
-        publishCheckout.execute(message);
-
-        // 4. Publica el evento de orden en Kafka (historial de ventas en product)
+        publishCheckout.execute(new CheckoutMessage(cartId, null, items));
         publishOrderPlaced.execute(toOrderPlaced(cartId, calculated));
 
-        return calculated;
+        return new CheckoutResponseDTO(cartId, "PENDIENTE", calculated.items(), calculated.total());
     }
 
     private OrderPlacedMessage toOrderPlaced(String cartId, CartResponseDTO calculated) {

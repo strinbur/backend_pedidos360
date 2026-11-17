@@ -1,9 +1,13 @@
 package com.pedidos360.product.messaging.consumer;
 
+import com.pedidos360.product.exception.InsufficientStockException;
+import com.pedidos360.product.exception.ProductNotFoundException;
 import com.pedidos360.product.messaging.dto.CheckoutMessage;
 import com.pedidos360.product.messaging.validation.MessageValidator;
 import com.pedidos360.product.usecase.ReduceStock;
+import com.pedidos360.product.usecase.ReduceStock.SoldItem;
 import com.pedidos360.product.usecase.ReduceStock.StockReduction;
+import com.pedidos360.product.usecase.ResolveOrder;
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,37 +29,41 @@ public class StockConsumer {
     private final MessageConverter converter;
     private final MessageValidator validator;
     private final ReduceStock reduceStock;
+    private final ResolveOrder resolveOrder;
 
-    public StockConsumer(MessageConverter converter, MessageValidator validator, ReduceStock reduceStock) {
+    public StockConsumer(MessageConverter converter, MessageValidator validator,
+                         ReduceStock reduceStock, ResolveOrder resolveOrder) {
         this.converter = converter;
         this.validator = validator;
         this.reduceStock = reduceStock;
+        this.resolveOrder = resolveOrder;
     }
 
     @RabbitListener(queues = "${app.rabbit.queues.stock}", containerFactory = "rawListenerFactory")
     public void onMessage(Message message, Channel channel,
                           @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws IOException {
+        CheckoutMessage checkout = null;
         try {
-            // 1. Deserializar
             message.getMessageProperties().setInferredArgumentType(CheckoutMessage.class);
-            CheckoutMessage checkout = (CheckoutMessage) converter.fromMessage(message);
-
-            // 2. Validar
+            checkout = (CheckoutMessage) converter.fromMessage(message);
             validator.validate(checkout);
 
-            // 3. Caso de uso
             List<StockReduction> reductions = checkout.items().stream()
                     .map(i -> new StockReduction(i.productId(), i.quantity()))
                     .toList();
-            reduceStock.execute(reductions);
+            List<SoldItem> sold = reduceStock.execute(reductions);
 
-            // 4. OK -> ACK
+            resolveOrder.confirm(checkout, sold);          // CONFIRMADA + orders.result
             channel.basicAck(tag, false);
             log.info("Checkout procesado cartId={}", checkout.cartId());
 
         } catch (Exception e) {
-            // 5. ERROR -> log + NACK sin reencolar (va a la DLQ)
             log.error("Checkout rechazado, se envía a la DLQ. Motivo: {}", e.getMessage());
+            // Solo los rechazos de negocio se avisan; un mensaje ilegible no tiene cartId confiable
+            if (checkout != null
+                    && (e instanceof InsufficientStockException || e instanceof ProductNotFoundException)) {
+                resolveOrder.reject(checkout, e.getMessage());   // RECHAZADA + orders.result
+            }
             channel.basicNack(tag, false, false);
         }
     }

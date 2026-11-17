@@ -8,5 +8,6 @@ public record StockLowMessage(
         String code,
         String name,
         @Min(value = 0, message = "stock no puede ser negativo") int stock,
-        @Min(value = 0, message = "threshold no puede ser negativo") int threshold
+        @Min(value = 0, message = "threshold no puede ser negativo") int threshold,
+        @NotBlank(message = "level es obligatorio") String level   // LOW | OUT | OK
 ) {}

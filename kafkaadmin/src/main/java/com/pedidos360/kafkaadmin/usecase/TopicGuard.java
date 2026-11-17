@@ -19,4 +19,12 @@ public class TopicGuard {
                     "Los tópicos que empiezan con '" + props.protectedTopicPrefix() + "' son internos de Kafka y no se pueden modificar");
         }
     }
+
+    public void assertDeletable(String name) {
+        assertNotProtected(name);
+        if (props.protectedTopics() != null && props.protectedTopics().contains(name)) {
+            throw new InvalidRequestException(
+                    "El tópico '" + name + "' lo usan los servicios de la aplicación y no se puede eliminar");
+        }
+    }
 }

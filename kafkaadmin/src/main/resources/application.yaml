@@ -10,3 +10,7 @@ app:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092,localhost:9094,localhost:9095}
   admin:
     protected-topic-prefix: __
+    protected-topics:
+      - orders.checkout
+      - orders.result
+      - stock.low

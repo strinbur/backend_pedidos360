@@ -7,6 +7,7 @@ import com.pedidos360.product.exception.ProductNotFoundException;
 import com.pedidos360.product.mapper.ProductMapper;
 import com.pedidos360.product.messaging.producer.PublishProductDeleted;
 import com.pedidos360.product.messaging.producer.PublishProductUpdated;
+import com.pedidos360.product.messaging.producer.PublishStockLow;
 import com.pedidos360.product.model.Product;
 import com.pedidos360.product.repository.ProductRepository;
 import com.pedidos360.product.service.ProductService;
@@ -20,13 +21,16 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final PublishProductUpdated publishProductUpdated;
     private final PublishProductDeleted publishProductDeleted;
+    private final PublishStockLow publishStockLow;
 
     public ProductServiceImpl(ProductRepository productRepository,
                               PublishProductUpdated publishProductUpdated,
-                              PublishProductDeleted publishProductDeleted) {
+                              PublishProductDeleted publishProductDeleted,
+                              PublishStockLow publishStockLow) {
         this.productRepository = productRepository;
         this.publishProductUpdated = publishProductUpdated;
         this.publishProductDeleted = publishProductDeleted;
+        this.publishStockLow = publishStockLow;
     }
 
     @Override
@@ -62,6 +66,8 @@ public class ProductServiceImpl implements ProductService {
             throw new DuplicateProductCodeException(dto.code());
         }
 
+        int previousStock = existing.getStock();             // ANTES de los setters
+
         existing.setCode(dto.code());
         existing.setName(dto.name());
         existing.setDescription(dto.description());
@@ -71,7 +77,10 @@ public class ProductServiceImpl implements ProductService {
         existing.setImageUrl(dto.imageUrl());
 
         Product updated = productRepository.save(existing);
-        publishProductUpdated.execute(updated);              // NUEVO
+        publishProductUpdated.execute(updated);
+        if (previousStock != updated.getStock()) {           // DESPUÉS del save
+            publishStockLow.executeIfRelevant(updated, previousStock);
+        }
         return ProductMapper.toResponseDTO(updated);
     }
 
@@ -81,7 +90,7 @@ public class ProductServiceImpl implements ProductService {
             throw new ProductNotFoundException("Producto no encontrado con id: " + id);
         }
         productRepository.deleteById(id);
-        publishProductDeleted.execute(id);                   // NUEVO
+        publishProductDeleted.execute(id);
     }
 
     @Override

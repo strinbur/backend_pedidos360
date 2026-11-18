@@ -15,7 +15,7 @@ public class DeleteTopic {
     }
 
     public void execute(String name) {
-        guard.assertNotProtected(name);
+        guard.assertDeletable(name);
         broker.deleteTopic(name);
     }
 }
